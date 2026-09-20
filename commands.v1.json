@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "sample_rate_hz": 16000,
+  "clip_duration_ms": 1000,
+  "labels": [
+    "unknown",
+    "silence",
+    "wake",
+    "menu_open",
+    "back",
+    "wifi_scan",
+    "wifi_monitor",
+    "bluetooth_scan",
+    "rfid_read",
+    "ir_send",
+    "errors_show",
+    "cancel"
+  ],
+  "phrases": {
+    "wake": ["hey flipper"],
+    "menu_open": ["menü aç"],
+    "back": ["geri dön"],
+    "wifi_scan": ["wifi tara", "kablosuz ağları tara"],
+    "wifi_monitor": ["wifi izle", "kablosuz ağı izle"],
+    "bluetooth_scan": ["bluetooth tara"],
+    "rfid_read": ["kart oku"],
+    "ir_send": ["kızılötesi gönder"],
+    "errors_show": ["hataları göster"],
+    "cancel": ["iptal"]
+  },
+  "styles": ["normal", "quiet", "whisper"],
+  "minimum_samples_per_label_and_style": 80
+}

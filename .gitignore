@@ -1,0 +1,14 @@
+# Training data (raw recordings, imported Common Voice/Wispr audio, derived
+# manifests) and trained model artifacts -- large and/or personal, never
+# pushed. See README.md for how to rebuild each from a source archive/DB.
+data/
+artifacts/
+
+# Local pip install logs -- environment-specific, not useful to anyone else.
+pip-install.log
+pip-install.err.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
