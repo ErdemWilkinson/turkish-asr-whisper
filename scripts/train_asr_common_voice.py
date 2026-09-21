@@ -126,7 +126,13 @@ def main() -> None:
     args.output.mkdir(parents=True, exist_ok=True)
     training, inference = build_models()
     if args.warm_start:
-        warm = tf.keras.models.load_model(args.warm_start, compile=False)
+        # A completed run saves ``inference.keras``.  If an earlier job was
+        # interrupted, its best checkpoint is the training model, which also
+        # contains the local CtcLoss layer.  Both have the same acoustic-model
+        # weights, so accept either checkpoint format for a safe resume.
+        warm = tf.keras.models.load_model(
+            args.warm_start, compile=False, custom_objects={"CtcLoss": CtcLoss}
+        )
         inference.set_weights(warm.get_weights())
     callbacks = [
         tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=3, restore_best_weights=True),
