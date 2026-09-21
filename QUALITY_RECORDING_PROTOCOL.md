@@ -1,25 +1,29 @@
-# Kaliteli Türkçe ASR kayıt protokolü
+# Quality Turkish ASR recording protocol
 
-Common Voice çeşitlilik sağlar; gerçek cihaz performansı için bunun yanında aynı
-mikrofonla toplanmış, denetlenmiş kayıtlar gerekir. Hedef v1: en az 12 konuşmacı,
-her biri 80 farklı kısa cümleyi iki kez okur. Bu, yaklaşık 1.920 kayıt eder.
+Common Voice provides diversity; real on-device performance also needs
+supervised recordings collected with the same microphone. Target for v1: at
+least 12 speakers, each reading 80 different short sentences twice. That's
+roughly 1,920 recordings.
 
-Her kayıt mono, 16 kHz, 16-bit PCM WAV olmalı. Konuşmacı mikrofondan 15–30 cm
-uzakta ve doğal hızda konuşur. Her cümlenin önünde ve sonunda 200 ms sessizlik
-bırakılır. Aynı cümlenin ikinci tekrarı farklı odada veya düşük seviyeli arka
-plan gürültüsüyle alınır.
+Each recording should be mono, 16 kHz, 16-bit PCM WAV. The speaker sits
+15–30 cm from the microphone and speaks at a natural pace. Leave 200 ms of
+silence before and after each sentence. The second take of the same
+sentence is recorded in a different room, or with low-level background
+noise.
 
-Kayıtlar şu yapıda tutulur; bu klasör Git tarafından yok sayılır:
+Recordings are kept in this layout; this folder is git-ignored:
 
 ```text
 voice/data/raw_v2/<speaker_id>/<session>/<prompt_id>.wav
 voice/data/raw_v2/<speaker_id>/<session>/transcript.tsv
 ```
 
-`transcript.tsv` başlığı: `prompt_id<TAB>transcript`. Cihaz için ayrı test
-konuşmacıları ayırın: 8 kişi eğitim, 2 kişi doğrulama, 2 kişi test. Aynı kişinin
-kayıtları hiçbir zaman birden fazla bölüme girmemelidir.
+`transcript.tsv` header: `prompt_id<TAB>transcript`. Keep separate test
+speakers for the device: 8 people for training, 2 for validation, 2 for
+test. The same person's recordings must never end up in more than one
+split.
 
-Reddetme ölçütleri: kesilmiş kelime, belirgin klipleme, yanlış/eksik metin,
-çift konuşma, 0,8 sn’den kısa veya 12 sn’den uzun kayıt. Fısıltı hedefi yeniden
-eklenirse aynı protokole her konuşmacı için ek bir `whisper` oturumu eklenir.
+Rejection criteria: cut-off words, noticeable clipping, wrong/missing
+transcript, overlapping speech, recordings shorter than 0.8s or longer than
+12s. If the whisper-volume target is reintroduced, add an extra `whisper`
+session per speaker to the same protocol.
