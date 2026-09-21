@@ -62,7 +62,10 @@ class BatchSequence(tf.keras.utils.Sequence):
         self.on_epoch_end()
 
     def __len__(self) -> int:
-        return len(self.rows) // self.batch_size
+        # Keras asks for every index below __len__().  Floor division used to
+        # silently discard a final partial batch while reports still claimed
+        # every row was used.
+        return int(np.ceil(len(self.rows) / self.batch_size))
 
     def on_epoch_end(self) -> None:
         if self.shuffle:
@@ -121,8 +124,8 @@ def main() -> None:
     tf.keras.utils.set_random_seed(args.seed)
     train_rows = load_rows(args.data / "train.jsonl", args.train_limit, args.seed)
     dev_rows = load_rows(args.data / "dev.jsonl", args.dev_limit, args.seed + 1)
-    if len(train_rows) < args.batch_size or len(dev_rows) < args.batch_size:
-        raise SystemExit("Not enough valid rows for the requested batch size.")
+    if not train_rows or not dev_rows:
+        raise SystemExit("No valid training or development rows were found.")
     args.output.mkdir(parents=True, exist_ok=True)
     training, inference = build_models()
     if args.warm_start:
@@ -147,6 +150,8 @@ def main() -> None:
     inference.save(args.output / "inference.keras")
     (args.output / "metrics.json").write_text(json.dumps({
         "train_rows": len(train_rows), "dev_rows": len(dev_rows),
+        "train_batches": len(BatchSequence(train_rows, args.batch_size, shuffle=False)),
+        "dev_batches": len(BatchSequence(dev_rows, args.batch_size, shuffle=False)),
         "epochs_requested": args.epochs, "epochs_completed": len(history.history["loss"]),
         "loss": [float(x) for x in history.history["loss"]],
         "val_loss": [float(x) for x in history.history["val_loss"]],
