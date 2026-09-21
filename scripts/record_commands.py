@@ -60,22 +60,34 @@ def record_take(duration_s: float) -> np.ndarray:
 
 
 def next_take_index(label_dir: Path) -> int:
-    existing = list(label_dir.glob("*.wav"))
-    return len(existing)
+    """Return a new numeric filename, rejecting ambiguous existing files."""
+    used = set()
+    for path in label_dir.glob("*.wav"):
+        if not path.stem.isdigit():
+            raise SystemExit(f"Unexpected recording name {path}; rename it before --resume.")
+        used.add(int(path.stem))
+    return max(used, default=-1) + 1
 
 
-def record_label_style(speaker: str, label: str, style: str, resume: bool) -> None:
+def record_label_style(speaker: str, label: str, style: str, resume: bool, replace: bool) -> None:
     phrase = SPEC["phrases"].get(label)
     prompt = PROMPT_OVERRIDES.get(label, f'"{phrase[0]}"' if phrase else "(bilinmeyen)")
     out_dir = ROOT / "data" / "raw" / speaker / style / label
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    existing = list(out_dir.glob("*.wav"))
+    if existing and not resume and not replace:
+        raise SystemExit(f"{out_dir} already contains recordings; use --resume or explicit --replace.")
+    if replace:
+        for path in existing:
+            path.unlink()
     start = next_take_index(out_dir) if resume else 0
-    if start >= MIN_TAKES:
-        print(f"[{label}/{style}] already has {start} takes (>= {MIN_TAKES}), skipping")
+    completed = len(list(out_dir.glob("*.wav")))
+    if completed >= MIN_TAKES:
+        print(f"[{label}/{style}] already has {completed} takes (>= {MIN_TAKES}), skipping")
         return
 
-    print(f"\n=== {label} / {style} ({start}/{MIN_TAKES} done) ===")
+    print(f"\n=== {label} / {style} ({completed}/{MIN_TAKES} done) ===")
     print(f"Say: {prompt}")
     if style == "whisper":
         print("  (WHISPER volume -- barely audible, as if not to wake someone)")
@@ -83,8 +95,8 @@ def record_label_style(speaker: str, label: str, style: str, resume: bool) -> No
         print("  (quiet indoor voice, not full volume)")
 
     i = start
-    while i < MIN_TAKES:
-        input(f"  Take {i + 1}/{MIN_TAKES} -- press Enter to start recording "
+    while completed < MIN_TAKES:
+        input(f"  Take {completed + 1}/{MIN_TAKES} -- press Enter to start recording "
               f"(Ctrl+C to stop this session): ")
         audio = record_take(CLIP_MS / 1000.0)
         peak = int(np.abs(audio).max())
@@ -99,6 +111,7 @@ def record_label_style(speaker: str, label: str, style: str, resume: bool) -> No
         sf.write(path, audio, SAMPLE_RATE, subtype="PCM_16")
         print(f"  saved {path.relative_to(ROOT)} (peak={peak})")
         i += 1
+        completed += 1
 
 
 def main() -> None:
@@ -106,6 +119,8 @@ def main() -> None:
     parser.add_argument("--speaker", required=True, help="speaker id, e.g. 'erdem' -- must be a valid folder name")
     parser.add_argument("--resume", action="store_true",
                          help="skip takes already recorded for a label/style instead of starting over")
+    parser.add_argument("--replace", action="store_true",
+                        help="delete existing WAV takes for selected label/styles before recording")
     parser.add_argument("--labels", nargs="*", default=None,
                          help="only record these labels (default: all in commands.v1.json)")
     parser.add_argument("--styles", nargs="*", default=None,
@@ -129,7 +144,7 @@ def main() -> None:
                 if style not in SPEC["styles"]:
                     print(f"Unknown style {style!r}, skipping", file=sys.stderr)
                     continue
-                record_label_style(args.speaker, label, style, args.resume)
+                record_label_style(args.speaker, label, style, args.resume, args.replace)
     except KeyboardInterrupt:
         print("\nSession stopped early -- already-saved takes are kept. Re-run with --resume to continue.")
         return
