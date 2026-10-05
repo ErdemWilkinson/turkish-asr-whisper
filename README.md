@@ -190,3 +190,7 @@ of the target commands — that's why the two paths in this repo stay separate.
 - [turkish-ocr-tinyml](https://github.com/ErdemWilkinson/turkish-ocr-tinyml) —
   the sibling TinyML pipeline (offline Turkish line OCR), split out for the
   same reason (separate concern, separate dataset)
+
+## License
+
+Code in this repository is released under the [MIT License](LICENSE). Datasets are not part of the repository and keep their own licenses.
