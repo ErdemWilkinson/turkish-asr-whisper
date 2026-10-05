@@ -3,7 +3,7 @@
 This is an offline, CPU-friendly training path: audio is loaded per batch, so
 the full corpus is never padded into RAM.  It deliberately preserves Mozilla's
 official train/dev split.  The resulting model is a research baseline, not an
-ESP32-P4 deployment artifact.
+embedded deployment artifact.
 """
 from __future__ import annotations
 

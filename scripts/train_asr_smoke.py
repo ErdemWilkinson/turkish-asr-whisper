@@ -1,6 +1,6 @@
 """Train a deliberately small CTC ASR baseline from paired Turkish audio/text.
 
-This validates the local ASR path. It is not a deployable ESP32-P4 model and
+This validates the local ASR path. It is not a deployable embedded model and
 must not be mistaken for the labelled command recognizer.
 """
 from __future__ import annotations

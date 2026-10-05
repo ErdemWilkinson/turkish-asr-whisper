@@ -1,8 +1,11 @@
 # Turkish Whisper-Command ASR
 
 Training pipeline for a small, offline Turkish speech command recognizer,
-targeting an [ESP32-P4-Pico](https://github.com/ErdemWilkinson/makeshift-flipper)
-running fully disconnected. The goal is **not** general speech-to-text —
+meant to run fully disconnected on a microcontroller-class device. It was
+started as the planned voice input for the
+[makeshift-flipper](https://github.com/ErdemWilkinson/makeshift-flipper);
+that device is now a single ESP32-C6 with no microphone, so the target
+board for this model is not decided yet. The goal is **not** general speech-to-text —
 it's reliably classifying a short, fixed set of Turkish commands, including
 when they're whispered at very low volume. A separate research-baseline
 path (character-level CTC over Mozilla Common Voice) also lives here for
@@ -24,7 +27,7 @@ baseline path has produced trained artifacts locally (not pushed — see
 | | `train.py` (command classifier) | `train_asr_common_voice.py` / `train_asr_smoke.py` (CTC baseline) |
 |---|---|---|
 | Task | Fixed-label classification (12 labels, see `commands.v1.json`) | Open-vocabulary character-level transcription |
-| Deployment target | **Yes** — this is what ships to the P4 | **No** — research baseline only, both scripts say so in their own docstrings |
+| Deployment target | **Yes** — this is the model meant for the device | **No** — research baseline only, both scripts say so in their own docstrings |
 | Input | 1-second 16kHz clips of the 12 known commands/wake word/unknown/silence | Common Voice or paired Wispr History audio+transcript |
 | Split | Speaker-disjoint (same voice never in both train and validation) | Mozilla's official train/dev split, preserved as-is |
 | Why it exists | The actual product feature | A sanity check on how far a from-scratch Turkish CTC model gets with public/personal data, useful context before trusting the classifier's numbers |
@@ -171,7 +174,7 @@ local history.
 
 ## Acceptance threshold (command classifier)
 
-Before integration into the P4 firmware, on a held-out set recorded by
+Before integration into any firmware, on a held-out set recorded by
 speakers not in training:
 
 - Whisper command accuracy: ≥ 85%
@@ -186,7 +189,7 @@ of the target commands — that's why the two paths in this repo stay separate.
 ## Related repositories
 
 - [makeshift-flipper](https://github.com/ErdemWilkinson/makeshift-flipper) —
-  the ESP32-P4/C6 firmware this model is meant to run on
+  the ESP32-C6 handheld firmware project this model was originally scoped for
 - [turkish-ocr-tinyml](https://github.com/ErdemWilkinson/turkish-ocr-tinyml) —
   the sibling TinyML pipeline (offline Turkish line OCR), split out for the
   same reason (separate concern, separate dataset)
