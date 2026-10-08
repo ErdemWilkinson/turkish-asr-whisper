@@ -151,6 +151,32 @@ committed). The importer scripts only accept audio/text pairs resolvable by
 an explicit filename column in the archive's metadata — they never guess a
 pairing by timestamp or ordering.
 
+### Baseline training history
+
+The CTC baseline has been trained in three runs, each continuing from the
+previous run's weights with `--warm-start`:
+
+| Run | Date | Train clips | Epochs | Best validation loss |
+|---|---|---:|---:|---:|
+| Stage 2 | 2026-09-20 | 9,000 | 22 | 76.40 |
+| v3 (interrupted) | 2026-09-20 | not recorded | 10 | 64.46 |
+| v4 (`--max-minutes 55`) | 2026-10-08 | 15,000 | 3 | 61.11 |
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/asr-loss-curves-dark.svg">
+  <img alt="Training and validation loss of the CTC baseline across the Stage 2, v3 and v4 runs" src="docs/asr-loss-curves-light.svg">
+</picture>
+
+The runs used different data subsets, so the level change between runs is
+not a like-for-like comparison; the lines are broken at the run boundaries
+for that reason. In v4 the validation loss rose every epoch (61.11 -> 62.26
+-> 63.14), so the saved model is the first epoch's.
+
+CER and WER were not measured for v4. The latest measurement is Stage 2's,
+on 500 held-out scripted clips: CER 59.4%, WER 101.2% (see
+[ASR_TRAINING_REPORT.md](ASR_TRAINING_REPORT.md)). This path remains a
+research baseline, not a deployable model.
+
 ### Wispr Flow History (personal data, opt-in, local-only)
 
 `export_wispr_pairs.py` can pull paired WAV/transcript rows out of a local
