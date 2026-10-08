@@ -11,6 +11,7 @@ import argparse
 import json
 import random
 import re
+import time
 from pathlib import Path
 
 import librosa
@@ -95,6 +96,23 @@ class CtcLoss(tf.keras.layers.Layer):
         return logits
 
 
+class TimeBudget(tf.keras.callbacks.Callback):
+    """Stop once another epoch would not fit in the --max-minutes budget."""
+
+    def __init__(self, minutes: float):
+        super().__init__()
+        self.seconds = minutes * 60.0
+
+    def on_train_begin(self, logs=None):
+        self.started = time.monotonic()
+
+    def on_epoch_end(self, epoch, logs=None):
+        elapsed = time.monotonic() - self.started
+        if elapsed + elapsed / (epoch + 1) > self.seconds:
+            print(f"Time budget reached after epoch {epoch + 1}.")
+            self.model.stop_training = True
+
+
 def build_models() -> tuple[tf.keras.Model, tf.keras.Model]:
     features = tf.keras.Input(shape=(None, N_MELS), name="features")
     labels = tf.keras.Input(shape=(None,), dtype="int32", name="labels")
@@ -120,6 +138,7 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--warm-start", type=Path, help="Existing inference.keras to continue from")
+    parser.add_argument("--max-minutes", type=float, help="Stop when another epoch would exceed this budget")
     args = parser.parse_args()
     tf.keras.utils.set_random_seed(args.seed)
     train_rows = load_rows(args.data / "train.jsonl", args.train_limit, args.seed)
@@ -142,11 +161,16 @@ def main() -> None:
         tf.keras.callbacks.CSVLogger(str(args.output / "history.csv")),
         tf.keras.callbacks.ModelCheckpoint(str(args.output / "best_training.keras"), monitor="val_loss", save_best_only=True),
     ]
+    if args.max_minutes:
+        callbacks.append(TimeBudget(args.max_minutes))
     history = training.fit(
         BatchSequence(train_rows, args.batch_size, shuffle=True),
         validation_data=BatchSequence(dev_rows, args.batch_size, shuffle=False),
         epochs=args.epochs, callbacks=callbacks, verbose=2,
     )
+    # EarlyStopping only restores the best epoch when it is the one that stops the run.
+    training.load_weights(str(args.output / "best_training.keras"))
+    print(f"Saving best epoch, val_loss {min(history.history['val_loss']):.4f}.")
     inference.save(args.output / "inference.keras")
     (args.output / "metrics.json").write_text(json.dumps({
         "train_rows": len(train_rows), "dev_rows": len(dev_rows),
