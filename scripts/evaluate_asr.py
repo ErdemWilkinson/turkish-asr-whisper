@@ -17,7 +17,7 @@ import tensorflow as tf
 # dict below). Without it, tf.keras.models.load_model() on a training
 # checkpoint (e.g. a best_training.keras saved mid-run) fails with
 # "TypeError: Cannot deserialize object of type 'CtcLoss'" -- see
-# KNOWN_ISSUES.md's Round 18 entry. An already-exported inference.keras
+# KNOWN_ISSUES.md's Round 18 entry. An already-exported erdem_asr.keras
 # doesn't contain a CtcLoss layer, so this import/argument is a no-op for
 # that case and only matters for evaluating an interrupted run's checkpoint.
 from train_asr_common_voice import CtcLoss
@@ -54,7 +54,7 @@ def distance(left: list[str], right: list[str]) -> int:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=Path,
-                        default=ROOT / "artifacts" / "asr_common_voice_stage0" / "inference.keras")
+                        default=ROOT / "artifacts" / "asr_common_voice_stage0" / "erdem_asr.keras")
     parser.add_argument("--data", type=Path, default=ROOT / "data" / "common_voice_quality_v1" / "test.jsonl")
     parser.add_argument("--limit", type=int, default=500)
     parser.add_argument("--batch-size", type=int, default=16)

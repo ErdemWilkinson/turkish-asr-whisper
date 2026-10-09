@@ -137,7 +137,7 @@ def main() -> None:
     parser.add_argument("--epochs", type=int, default=12)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--warm-start", type=Path, help="Existing inference.keras to continue from")
+    parser.add_argument("--warm-start", type=Path, help="Existing erdem_asr.keras to continue from")
     parser.add_argument("--max-minutes", type=float, help="Stop when another epoch would exceed this budget")
     args = parser.parse_args()
     tf.keras.utils.set_random_seed(args.seed)
@@ -148,7 +148,7 @@ def main() -> None:
     args.output.mkdir(parents=True, exist_ok=True)
     training, inference = build_models()
     if args.warm_start:
-        # A completed run saves ``inference.keras``.  If an earlier job was
+        # A completed run saves ``erdem_asr.keras``.  If an earlier job was
         # interrupted, its best checkpoint is the training model, which also
         # contains the local CtcLoss layer.  Both have the same acoustic-model
         # weights, so accept either checkpoint format for a safe resume.
@@ -171,7 +171,7 @@ def main() -> None:
     # EarlyStopping only restores the best epoch when it is the one that stops the run.
     training.load_weights(str(args.output / "best_training.keras"))
     print(f"Saving best epoch, val_loss {min(history.history['val_loss']):.4f}.")
-    inference.save(args.output / "inference.keras")
+    inference.save(args.output / "erdem_asr.keras")
     (args.output / "metrics.json").write_text(json.dumps({
         "train_rows": len(train_rows), "dev_rows": len(dev_rows),
         "train_batches": len(BatchSequence(train_rows, args.batch_size, shuffle=False)),
