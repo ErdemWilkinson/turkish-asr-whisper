@@ -212,6 +212,27 @@ Turkish general-speech corpora (Common Voice) can help pretraining/
 background diversity, but do not substitute for actual whispered recordings
 of the target commands — that's why the two paths in this repo stay separate.
 
+## Third-party datasets and licenses
+
+None of this audio is redistributed in this repository; each source keeps
+its own license, and attribution is required where the license says so.
+
+| Dataset | Role here | License | Source |
+|---|---|---|---|
+| Mozilla Common Voice, Turkish (Scripted and Spontaneous Speech) | CTC baseline training and evaluation | CC0 | [Mozilla Data Collective](https://datacollective.mozillafoundation.org/) |
+| Multilingual Spoken Words Corpus (MSWC), Turkish | Candidate `unknown` class: 75,097 one-second clips of 2,965 words | CC BY 4.0 | [MLCommons/ml_spoken_words](https://huggingface.co/datasets/MLCommons/ml_spoken_words) |
+| Turkish Speech Command Dataset, Murat Kurtkaya (2021) | Candidate `unknown` class and command words: 26,485 one-second clips of 14 commands, including "aç" and "geri" | **CC BY-NC-SA 4.0** | [Kaggle](https://www.kaggle.com/datasets/muratkurtkaya/turkish-speech-command-dataset) |
+| ISSAI Turkish Speech Corpus | Candidate background speech: 218 hours | MIT | [issai/Turkish_Speech_Corpus](https://huggingface.co/datasets/issai/Turkish_Speech_Corpus) |
+
+Only Common Voice has been used for training so far. The other three are
+downloaded locally as candidates for the command classifier; none of them
+contains the command phrases themselves ("menü", "tara", "izle", "oku",
+"gönder" and "göster" do not occur in MSWC at all), so they do not replace
+recording the commands.
+
+A model trained with the Turkish Speech Command Dataset would be bound by
+its non-commercial, share-alike terms; see [MODEL_LICENSE.md](MODEL_LICENSE.md).
+
 ## Related repositories
 
 - [makeshift-flipper](https://github.com/ErdemWilkinson/makeshift-flipper) —
@@ -223,3 +244,7 @@ of the target commands — that's why the two paths in this repo stay separate.
 ## License
 
 Code in this repository is released under the [MIT License](LICENSE). Datasets are not part of the repository and keep their own licenses.
+
+Trained model files are not covered by the MIT License; see
+[MODEL_LICENSE.md](MODEL_LICENSE.md) and
+[Third-party datasets and licenses](#third-party-datasets-and-licenses).
