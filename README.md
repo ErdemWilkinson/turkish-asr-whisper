@@ -221,14 +221,15 @@ its own license, and attribution is required where the license says so.
 |---|---|---|---|
 | Mozilla Common Voice, Turkish (Scripted and Spontaneous Speech) | CTC baseline training and evaluation | CC0 | [Mozilla Data Collective](https://datacollective.mozillafoundation.org/) |
 | Multilingual Spoken Words Corpus (MSWC), Turkish | Candidate `unknown` class: 75,097 one-second clips of 2,965 words | CC BY 4.0 | [MLCommons/ml_spoken_words](https://huggingface.co/datasets/MLCommons/ml_spoken_words) |
-| Turkish Speech Command Dataset, Murat Kurtkaya (2021) | Candidate `unknown` class and command words: 26,485 one-second clips of 14 commands, including "aç" and "geri" | **CC BY-NC-SA 4.0** | [Kaggle](https://www.kaggle.com/datasets/muratkurtkaya/turkish-speech-command-dataset) |
+| Turkish Speech Command Dataset, Murat Kurtkaya (2021) | Candidate `unknown` class and command words: 26,484 one-second clips of 14 words, including "iptal" (1,952 clips, the `cancel` command itself), "geri" (1,880) and "aç" (1,955) | **CC BY-NC-SA 4.0** | [Kaggle](https://www.kaggle.com/datasets/muratkurtkaya/turkish-speech-command-dataset) |
 | ISSAI Turkish Speech Corpus | Candidate background speech: 218 hours | MIT | [issai/Turkish_Speech_Corpus](https://huggingface.co/datasets/issai/Turkish_Speech_Corpus) |
 
 Only Common Voice has been used for training so far. The other three are
-downloaded locally as candidates for the command classifier; none of them
-contains the command phrases themselves ("menü", "tara", "izle", "oku",
-"gönder" and "göster" do not occur in MSWC at all), so they do not replace
-recording the commands.
+downloaded locally as candidates for the command classifier. Apart from
+"iptal", none of them contains the command phrases themselves ("menü",
+"tara", "izle", "oku", "gönder" and "göster" do not occur in MSWC at all),
+and none contains whispered speech, so they do not replace recording the
+commands.
 
 A model trained with the Turkish Speech Command Dataset would be bound by
 its non-commercial, share-alike terms; see [MODEL_LICENSE.md](MODEL_LICENSE.md).
