@@ -179,19 +179,30 @@ Later runs, 2026-10-09 and 2026-10-10:
 | v5 (`--lr 3e-4`) | Common Voice, 50,000 clips | not recorded | 58.58 |
 | v6 (`--max-minutes 55`) | Common Voice + ISSAI Turkish Speech Corpus, 80,000 clips | 1 | 57.52 |
 | v7 (overnight, 2026-10-10) | 41,338 clips | 5 | 60.36 |
+| v8 (from v6, `--lr 2e-4`, 222 min) | Common Voice + ISSAI, 100,000 clips | 2 | 56.08 |
+| v9 (from v8, `--lr 1.5e-4`, 62 min) | Common Voice + ISSAI, 60,000 clips | 5 | **55.27** |
 
-v6 is the best so far, but only by about one point after doubling the data;
-v7 validated worse (60.4-61.4, no clear trend). Each run used a different
-subset and validation set, so these are not like-for-like. The network has
-about 64,000 parameters, which looks like the limit rather than the amount of
-data. Clips whose transcript needs more CTC steps than the audio provides
-(some ISSAI clips) are now skipped when loading, because they crash the CTC
-loss.
+v6, v8 and v9 share the same validation set (3,000 clips of the combined
+dev manifest), so 57.52 -> 56.08 -> 55.27 is a like-for-like improvement;
+the other runs used different subsets. Validation loss was still falling
+when v9 ran out of time. Training loss (82) stays well above validation
+loss, so the network (about 64,000 parameters) is underfitting: capacity,
+not data or regularization, is the limit. Clips whose transcript needs more
+CTC steps than the audio provides (some ISSAI clips) are skipped when
+loading, because they crash the CTC loss.
 
-CER and WER were not measured for v4-v7. The latest measurement is Stage 2's,
-on 500 held-out scripted clips: CER 59.4%, WER 101.2% (see
-[ASR_TRAINING_REPORT.md](ASR_TRAINING_REPORT.md)). This path remains a
-research baseline, not a deployable model.
+Measured on 500 held-out clips with `scripts/evaluate_asr.py`:
+
+| Model | Test set | CER | WER |
+|---|---|---:|---:|
+| Stage 2 (2026-09-20) | Common Voice scripted | 59.4% | 101.2% |
+| v9 (2026-10-10) | Common Voice scripted (`common_voice_quality_v1/test.jsonl`) | **48.6%** | 100.6% |
+| v9 (2026-10-10) | ISSAI test | 49.2% | 99.6% |
+
+Character error rate fell by about eleven points since Stage 2, but about
+half the characters are still wrong and almost no whole word is right
+(WER near 100%). This path remains a research baseline, not a deployable
+model (Stage 2 details: [ASR_TRAINING_REPORT.md](ASR_TRAINING_REPORT.md)).
 
 ### Wispr Flow History (personal data, opt-in, local-only)
 
