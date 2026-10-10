@@ -182,6 +182,15 @@ Later runs, 2026-10-09 and 2026-10-10:
 | v8 (from v6, `--lr 2e-4`, 222 min) | Common Voice + ISSAI, 100,000 clips | 2 | 56.08 |
 | v9 (from v8, `--lr 1.5e-4`, 62 min) | Common Voice + ISSAI, 60,000 clips | 5 | **55.27** |
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/asr-combined-val-dark.svg">
+  <img alt="Validation loss of the CTC baseline over the eight epochs of runs v6, v8 and v9" src="docs/asr-combined-val-light.svg">
+</picture>
+
+The loss axis of this chart does not start at zero; the whole range shown
+is 3.5 loss units. A v10 run (from v9) was stopped by hand after one epoch
+at 55.21; only its training checkpoint was kept.
+
 v6, v8 and v9 share the same validation set (3,000 clips of the combined
 dev manifest), so 57.52 -> 56.08 -> 55.27 is a like-for-like improvement;
 the other runs used different subsets. Validation loss was still falling
