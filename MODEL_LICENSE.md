@@ -16,8 +16,10 @@ A trained model carries the terms of the data it was trained on:
 Any model trained with the Turkish Speech Command Dataset is released under
 [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 
-As of 2026-10-09 no model in this project has been trained with that
-dataset; the CTC baseline uses Common Voice only.
+As of 2026-10-10 no model in this project has been trained with that
+dataset. The CTC baseline uses Common Voice and, from run v6 onward, a
+subset of the ISSAI Turkish Speech Corpus, so its weights must keep the ISSAI
+copyright and license notice.
 
 ## Attribution
 

@@ -172,7 +172,23 @@ not a like-for-like comparison; the lines are broken at the run boundaries
 for that reason. In v4 the validation loss rose every epoch (61.11 -> 62.26
 -> 63.14), so the saved model is the first epoch's.
 
-CER and WER were not measured for v4. The latest measurement is Stage 2's,
+Later runs, 2026-10-09 and 2026-10-10:
+
+| Run | Training data | Epochs | Best validation loss |
+|---|---|---:|---:|
+| v5 (`--lr 3e-4`) | Common Voice, 50,000 clips | not recorded | 58.58 |
+| v6 (`--max-minutes 55`) | Common Voice + ISSAI Turkish Speech Corpus, 80,000 clips | 1 | 57.52 |
+| v7 (overnight, 2026-10-10) | 41,338 clips | 5 | 60.36 |
+
+v6 is the best so far, but only by about one point after doubling the data;
+v7 validated worse (60.4-61.4, no clear trend). Each run used a different
+subset and validation set, so these are not like-for-like. The network has
+about 64,000 parameters, which looks like the limit rather than the amount of
+data. Clips whose transcript needs more CTC steps than the audio provides
+(some ISSAI clips) are now skipped when loading, because they crash the CTC
+loss.
+
+CER and WER were not measured for v4-v7. The latest measurement is Stage 2's,
 on 500 held-out scripted clips: CER 59.4%, WER 101.2% (see
 [ASR_TRAINING_REPORT.md](ASR_TRAINING_REPORT.md)). This path remains a
 research baseline, not a deployable model.
@@ -224,8 +240,9 @@ its own license, and attribution is required where the license says so.
 | Turkish Speech Command Dataset, Murat Kurtkaya (2021) | Candidate `unknown` class and command words: 26,484 one-second clips of 14 words, including "iptal" (1,952 clips, the `cancel` command itself), "geri" (1,880) and "aç" (1,955) | **CC BY-NC-SA 4.0** | [Kaggle](https://www.kaggle.com/datasets/muratkurtkaya/turkish-speech-command-dataset) |
 | ISSAI Turkish Speech Corpus | Candidate background speech: 218 hours | MIT | [issai/Turkish_Speech_Corpus](https://huggingface.co/datasets/issai/Turkish_Speech_Corpus) |
 
-Only Common Voice has been used for training so far. The other three are
-downloaded locally as candidates for the command classifier. Apart from
+Common Voice and a subset of ISSAI (59,436 clips) have been used for the CTC
+baseline; MSWC and the Turkish Speech Command Dataset are downloaded locally
+as candidates for the command classifier. Apart from
 "iptal", none of them contains the command phrases themselves ("menü",
 "tara", "izle", "oku", "gönder" and "göster" do not occur in MSWC at all),
 and none contains whispered speech, so they do not replace recording the

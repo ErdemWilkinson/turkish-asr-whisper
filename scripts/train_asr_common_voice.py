@@ -42,6 +42,13 @@ def load_rows(path: Path, limit: int | None, seed: int) -> list[dict]:
             continue
         text = normalise(raw_text)
         if text and len(text) <= 300 and Path(row["audio_path"]).is_file():
+            if row["audio_path"].endswith(".wav"):
+                # CTC needs one output step per character plus one blank between repeats;
+                # the model emits 25 steps/s (16 kHz mono 16-bit wav = 32,000 bytes/s).
+                steps = (Path(row["audio_path"]).stat().st_size - 44) / 32_000 * 25 - 2
+                needed = len(text) + sum(a == b for a, b in zip(text, text[1:]))
+                if needed > steps:
+                    continue
             row["transcript"] = text
             rows.append(row)
     random.Random(seed).shuffle(rows)
@@ -113,7 +120,7 @@ class TimeBudget(tf.keras.callbacks.Callback):
             self.model.stop_training = True
 
 
-def build_models() -> tuple[tf.keras.Model, tf.keras.Model]:
+def build_models(learning_rate: float = 1e-3) -> tuple[tf.keras.Model, tf.keras.Model]:
     features = tf.keras.Input(shape=(None, N_MELS), name="features")
     labels = tf.keras.Input(shape=(None,), dtype="int32", name="labels")
     input_len = tf.keras.Input(shape=(1,), dtype="int32", name="input_len")
@@ -124,7 +131,7 @@ def build_models() -> tuple[tf.keras.Model, tf.keras.Model]:
     logits = tf.keras.layers.Dense(len(ALPHABET) + 1, activation="softmax", name="characters")(x)
     training = tf.keras.Model([features, labels, input_len, label_len], CtcLoss()([labels, logits, input_len, label_len]))
     inference = tf.keras.Model(features, logits)
-    training.compile(optimizer=tf.keras.optimizers.Adam(1e-3))
+    training.compile(optimizer=tf.keras.optimizers.Adam(learning_rate))
     return training, inference
 
 
@@ -139,6 +146,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--warm-start", type=Path, help="Existing erdem_asr.keras to continue from")
     parser.add_argument("--max-minutes", type=float, help="Stop when another epoch would exceed this budget")
+    parser.add_argument("--lr", type=float, default=1e-3, help="Adam learning rate; lower it for a warm-started run")
     args = parser.parse_args()
     tf.keras.utils.set_random_seed(args.seed)
     train_rows = load_rows(args.data / "train.jsonl", args.train_limit, args.seed)
@@ -146,7 +154,7 @@ def main() -> None:
     if not train_rows or not dev_rows:
         raise SystemExit("No valid training or development rows were found.")
     args.output.mkdir(parents=True, exist_ok=True)
-    training, inference = build_models()
+    training, inference = build_models(args.lr)
     if args.warm_start:
         # A completed run saves ``erdem_asr.keras``.  If an earlier job was
         # interrupted, its best checkpoint is the training model, which also
