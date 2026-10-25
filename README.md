@@ -180,7 +180,8 @@ Later runs, 2026-10-09 and 2026-10-10:
 | v6 (`--max-minutes 55`) | Common Voice + ISSAI Turkish Speech Corpus, 80,000 clips | 1 | 57.52 |
 | v7 (overnight, 2026-10-10) | 41,338 clips | 5 | 60.36 |
 | v8 (from v6, `--lr 2e-4`, 222 min) | Common Voice + ISSAI, 100,000 clips | 2 | 56.08 |
-| v9 (from v8, `--lr 1.5e-4`, 62 min) | Common Voice + ISSAI, 60,000 clips | 5 | **55.27** |
+| v9 (from v8, `--lr 1.5e-4`, 62 min) | Common Voice + ISSAI, 60,000 clips | 5 | 55.27 |
+| v11 (from v10, `--lr 1.5e-4`, 166 min, 2026-10-25) | Common Voice + ISSAI, 100,000 clips | 18 | **51.66** |
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/asr-combined-val-dark.svg">
@@ -190,6 +191,24 @@ Later runs, 2026-10-09 and 2026-10-10:
 The loss axis of this chart does not start at zero; the whole range shown
 is 3.5 loss units. A v10 run (from v9) was stopped by hand after one epoch
 at 55.21; only its training checkpoint was kept.
+
+**v11 (2026-10-25)** continued from that v10 checkpoint overnight on all of
+the combined training manifest (100,000 clips, about 8.6 minutes per epoch
+on the CPU, running alone at below-normal priority on 12 of 16 threads) and
+was validated on the same 3,000 dev clips as v6, v8 and v9. Validation loss
+fell from 55.21 to **51.66** in 18 epochs, more than in all of v6 to v9
+together, and the best epoch was the last one, so it was still improving
+when the time budget ran out.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/asr-v11-loss-curve-dark.svg">
+  <img alt="Training and validation loss over the 18 epochs of run v11" src="docs/asr-v11-loss-curve-light.svg">
+</picture>
+
+v11 also ran on the refactored front end (`scripts/asr_shared.py`,
+`scripts/text_norm.py`): one feature pipeline for training, filtering and
+evaluation, with padded frames set to -80 dB (silence) instead of 0, which
+the backward GRU would otherwise read as the loudest frame of the clip.
 
 v6, v8 and v9 share the same validation set (3,000 clips of the combined
 dev manifest), so 57.52 -> 56.08 -> 55.27 is a like-for-like improvement;
@@ -208,10 +227,23 @@ Measured on 500 held-out clips with `scripts/evaluate_asr.py`:
 | v9 (2026-10-10) | Common Voice scripted (`common_voice_quality_v1/test.jsonl`) | **48.6%** | 100.6% |
 | v9 (2026-10-10) | ISSAI test | 49.2% | 99.6% |
 
-Character error rate fell by about eleven points since Stage 2, but about
-half the characters are still wrong and almost no whole word is right
-(WER near 100%). This path remains a research baseline, not a deployable
-model (Stage 2 details: [ASR_TRAINING_REPORT.md](ASR_TRAINING_REPORT.md)).
+Re-measured on 2026-10-25 with the refactored `evaluate_asr.py` (same 500
+clips per set, silence padding), so v9 and v11 are compared like for like:
+
+| Model | Test set | CER | WER |
+|---|---|---:|---:|
+| v9 | Common Voice scripted | 49.0% | 99.9% |
+| **v11** | Common Voice scripted | **45.6%** | 102.0% |
+| v9 | ISSAI test | 50.1% | 99.1% |
+| **v11** | ISSAI test | **46.3%** | 101.5% |
+
+Character error rate fell by about fourteen points since Stage 2 (3.5 of
+them in v11), but nearly half the characters are still wrong and almost no
+whole word is right (WER near 100%; above 100% means the model also inserts
+words). Example from the Common Voice test set: "ikincisiyse kredi
+toplamının yarısını karşılıyor" comes out as "irincisiyise kredi tokla
+mununyalısıya karşınıyor". This path remains a research baseline, not a
+deployable model (Stage 2 details: [ASR_TRAINING_REPORT.md](ASR_TRAINING_REPORT.md)).
 
 ### Wispr Flow History (personal data, opt-in, local-only)
 

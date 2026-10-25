@@ -6,44 +6,21 @@ must not be mistaken for the labelled command recognizer.
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
 
-import librosa
 import numpy as np
 import tensorflow as tf
 from sklearn.model_selection import GroupShuffleSplit
 
+from asr_shared import ALPHABET, N_MELS, extract_features, pad_features
+from text_norm import normalise
+
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "data" / "common_voice_spontaneous" / "manifest.jsonl"
 ARTIFACTS = ROOT / "artifacts" / "asr_smoke"
-RATE, N_MELS, HOP = 16_000, 40, 320
-# Q/W/X loanwords and proper names occur in the community transcripts.
-ALPHABET = " abcçdefgğhıijklmnoöpqrsştuüvwxyz'"
 # CTC reserves its final class for blank. Padding zeros are ignored through
 # label_len, so real characters use 0..N-1 and blank is N.
 CHAR_TO_ID = {char: index for index, char in enumerate(ALPHABET)}
-
-
-def normalise(text: str) -> str:
-    text = text.lower().replace("i̇", "i")
-    text = re.sub(r"[^a-zçğıöşü' ]", " ", text)
-    return re.sub(r"\s+", " ", text).strip()
-
-
-def feature(path: str) -> np.ndarray:
-    audio, _ = librosa.load(path, sr=RATE, mono=True)
-    mel = librosa.feature.melspectrogram(y=audio, sr=RATE, n_fft=640,
-                                         hop_length=HOP, n_mels=N_MELS, power=2.0)
-    return librosa.power_to_db(mel, ref=np.max).T.astype(np.float32)
-
-
-def pad_features(items: list[np.ndarray]) -> np.ndarray:
-    longest = max(item.shape[0] for item in items)
-    output = np.zeros((len(items), longest, N_MELS), dtype=np.float32)
-    for index, item in enumerate(items):
-        output[index, : item.shape[0]] = item
-    return output
 
 
 def pad_labels(items: list[list[int]]) -> np.ndarray:
@@ -67,7 +44,7 @@ def main() -> None:
     rows = [row for row in rows if normalise(row["transcript"]) and row.get("speaker_id")]
     if len(rows) < 10:
         raise SystemExit("Need at least ten paired samples with speaker identifiers.")
-    x_items = [feature(row["audio_path"]) for row in rows]
+    x_items = [extract_features(row["audio_path"]) for row in rows]
     y_items = [[CHAR_TO_ID[char] for char in normalise(row["transcript"])] for row in rows]
     x, y = pad_features(x_items), pad_labels(y_items)
     input_len = np.array([[item.shape[0] // 2] for item in x_items], dtype=np.int32)

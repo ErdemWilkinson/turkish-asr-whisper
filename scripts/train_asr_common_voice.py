@@ -10,25 +10,18 @@ from __future__ import annotations
 import argparse
 import json
 import random
-import re
 import time
 from pathlib import Path
 
-import librosa
 import numpy as np
 import tensorflow as tf
 
+from asr_shared import ALPHABET, N_MELS, PAD_DB, clip_seconds, ctc_feasible, extract_features
+from text_norm import normalise
+
 
 ROOT = Path(__file__).resolve().parents[1]
-RATE, N_MELS, HOP = 16_000, 40, 320
-ALPHABET = " abcçdefgğhıijklmnoöpqrsştuüvwxyz'"
 CHAR_TO_ID = {char: index for index, char in enumerate(ALPHABET)}
-
-
-def normalise(text: str) -> str:
-    text = text.lower().replace("i̇", "i")
-    text = re.sub(r"[^a-zçğıöşü' ]", " ", text)
-    return re.sub(r"\s+", " ", text).strip()
 
 
 def load_rows(path: Path, limit: int | None, seed: int) -> list[dict]:
@@ -42,25 +35,25 @@ def load_rows(path: Path, limit: int | None, seed: int) -> list[dict]:
             continue
         text = normalise(raw_text)
         if text and len(text) <= 300 and Path(row["audio_path"]).is_file():
-            if row["audio_path"].endswith(".wav"):
-                # CTC needs one output step per character plus one blank between repeats;
-                # the model emits 25 steps/s (16 kHz mono 16-bit wav = 32,000 bytes/s).
-                steps = (Path(row["audio_path"]).stat().st_size - 44) / 32_000 * 25 - 2
-                needed = len(text) + sum(a == b for a, b in zip(text, text[1:]))
-                if needed > steps:
-                    continue
             row["transcript"] = text
             rows.append(row)
     random.Random(seed).shuffle(rows)
-    return rows if limit is None else rows[:limit]
 
-
-def extract(path: str) -> np.ndarray:
-    audio, _ = librosa.load(path, sr=RATE, mono=True)
-    mel = librosa.feature.melspectrogram(
-        y=audio, sr=RATE, n_fft=640, hop_length=HOP, n_mels=N_MELS, power=2.0
-    )
-    return librosa.power_to_db(mel, ref=np.max).T.astype(np.float32)
+    # CTC cannot score a clip with fewer output steps than characters (+ blanks
+    # between repeated letters). Check every format, mp3 included, but only
+    # until `limit` rows are kept, so a small --train-limit stays cheap.
+    kept, rejected = [], 0
+    for row in rows:
+        if limit is not None and len(kept) >= limit:
+            break
+        seconds = clip_seconds(row)
+        if seconds is None or not ctc_feasible(row["transcript"], seconds):
+            rejected += 1
+            continue
+        kept.append(row)
+    if rejected:
+        print(f"{path.name}: skipped {rejected} rows whose transcript cannot fit the model's output steps.")
+    return kept
 
 
 class BatchSequence(tf.keras.utils.Sequence):
@@ -81,10 +74,10 @@ class BatchSequence(tf.keras.utils.Sequence):
 
     def __getitem__(self, index: int):
         selected = [self.rows[i] for i in self.indices[index * self.batch_size:(index + 1) * self.batch_size]]
-        features = [extract(row["audio_path"]) for row in selected]
+        features = [extract_features(row["audio_path"]) for row in selected]
         labels = [[CHAR_TO_ID[c] for c in row["transcript"]] for row in selected]
         max_frames, max_labels = max(x.shape[0] for x in features), max(len(y) for y in labels)
-        x = np.zeros((len(selected), max_frames, N_MELS), dtype=np.float32)
+        x = np.full((len(selected), max_frames, N_MELS), PAD_DB, dtype=np.float32)
         y = np.zeros((len(selected), max_labels), dtype=np.int32)
         input_len = np.zeros((len(selected), 1), dtype=np.int32)
         label_len = np.zeros((len(selected), 1), dtype=np.int32)

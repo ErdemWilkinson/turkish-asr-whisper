@@ -4,10 +4,8 @@ from __future__ import annotations
 import argparse
 import json
 import random
-import re
 from pathlib import Path
 
-import librosa
 import numpy as np
 import tensorflow as tf
 
@@ -20,24 +18,11 @@ import tensorflow as tf
 # KNOWN_ISSUES.md's Round 18 entry. An already-exported erdem_asr.keras
 # doesn't contain a CtcLoss layer, so this import/argument is a no-op for
 # that case and only matters for evaluating an interrupted run's checkpoint.
+from asr_shared import ALPHABET, extract_features, pad_features
+from text_norm import normalise
 from train_asr_common_voice import CtcLoss
 
 ROOT = Path(__file__).resolve().parents[1]
-RATE, N_MELS, HOP = 16_000, 40, 320
-ALPHABET = " abcçdefgğhıijklmnoöpqrsştuüvwxyz'"
-
-
-def normalise(text: str) -> str:
-    text = text.lower().replace("i̇", "i")
-    text = re.sub(r"[^a-zçğıöşü' ]", " ", text)
-    return re.sub(r"\s+", " ", text).strip()
-
-
-def extract(path: str) -> np.ndarray:
-    audio, _ = librosa.load(path, sr=RATE, mono=True)
-    mel = librosa.feature.melspectrogram(y=audio, sr=RATE, n_fft=640,
-                                         hop_length=HOP, n_mels=N_MELS, power=2.0)
-    return librosa.power_to_db(mel, ref=np.max).T.astype(np.float32)
 
 
 def distance(left: list[str], right: list[str]) -> int:
@@ -73,13 +58,9 @@ def main() -> None:
     examples = []
     for start in range(0, len(rows), args.batch_size):
         batch = rows[start:start + args.batch_size]
-        features = [extract(row["audio_path"]) for row in batch]
-        max_frames = max(item.shape[0] for item in features)
-        inputs = np.zeros((len(batch), max_frames, N_MELS), dtype=np.float32)
-        lengths = np.empty(len(batch), dtype=np.int32)
-        for index, item in enumerate(features):
-            inputs[index, :item.shape[0]] = item
-            lengths[index] = (item.shape[0] + 1) // 2
+        features = [extract_features(row["audio_path"]) for row in batch]
+        inputs = pad_features(features)
+        lengths = np.array([(item.shape[0] + 1) // 2 for item in features], dtype=np.int32)
         probabilities = model.predict(inputs, verbose=0)
         decoded, _ = tf.keras.backend.ctc_decode(probabilities, lengths, greedy=True)
         for row, tokens in zip(batch, decoded[0].numpy()):

@@ -13,15 +13,11 @@ import re
 from collections import Counter
 from pathlib import Path
 
+from asr_shared import ctc_feasible
+from text_norm import normalise
 
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWED = re.compile(r"^[a-zçğıöşü' ]+$")
-
-
-def normalise(text: str) -> str:
-    text = text.lower().replace("i̇", "i")
-    text = re.sub(r"[^a-zçğıöşü' ]", " ", text)
-    return re.sub(r"\s+", " ", text).strip()
 
 
 def durations(path: Path) -> dict[str, int]:
@@ -73,6 +69,9 @@ def main() -> None:
                 reasons["duration"] += 1
             elif rate < 4.0 or rate > 26.0:
                 reasons["speaking_rate"] += 1
+            elif not ctc_feasible(text, duration):
+                # More characters (plus blanks between repeats) than the model has output steps.
+                reasons["ctc_infeasible"] += 1
             elif text in seen_text:
                 reasons["duplicate_transcript"] += 1
             elif per_speaker[speaker] >= args.max_per_speaker:
