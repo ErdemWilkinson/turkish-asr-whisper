@@ -151,84 +151,20 @@ committed). The importer scripts only accept audio/text pairs resolvable by
 an explicit filename column in the archive's metadata — they never guess a
 pairing by timestamp or ordering.
 
-### Baseline training history
+### Where the baseline stands
 
-The CTC baseline has been trained in three runs, each continuing from the
-previous run's weights with `--warm-start`:
-
-| Run | Date | Train clips | Epochs | Best validation loss |
-|---|---|---:|---:|---:|
-| Stage 2 | 2026-09-20 | 9,000 | 22 | 76.40 |
-| v3 (interrupted) | 2026-09-20 | not recorded | 10 | 64.46 |
-| v4 (`--max-minutes 55`) | 2026-10-08 | 15,000 | 3 | 61.11 |
+The current model is **v11** (2026-10-25): 63,955 parameters, a 1-D
+convolution, a bidirectional GRU and a CTC character head over a 40-bin
+log-mel spectrogram. It is published as a research baseline at
+[inviolus/erdem-asr-tr-baseline](https://huggingface.co/inviolus/erdem-asr-tr-baseline).
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/asr-loss-curves-dark.svg">
-  <img alt="Training and validation loss of the CTC baseline across the Stage 2, v3 and v4 runs" src="docs/asr-loss-curves-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/asr-cer-dark.svg">
+  <img alt="Character error rate of v9 and v11 on Common Voice and ISSAI test clips" src="docs/asr-cer-light.svg">
 </picture>
 
-The runs used different data subsets, so the level change between runs is
-not a like-for-like comparison; the lines are broken at the run boundaries
-for that reason. In v4 the validation loss rose every epoch (61.11 -> 62.26
--> 63.14), so the saved model is the first epoch's.
-
-Later runs, 2026-10-09 and 2026-10-10:
-
-| Run | Training data | Epochs | Best validation loss |
-|---|---|---:|---:|
-| v5 (`--lr 3e-4`) | Common Voice, 50,000 clips | not recorded | 58.58 |
-| v6 (`--max-minutes 55`) | Common Voice + ISSAI Turkish Speech Corpus, 80,000 clips | 1 | 57.52 |
-| v7 (overnight, 2026-10-10) | 41,338 clips | 5 | 60.36 |
-| v8 (from v6, `--lr 2e-4`, 222 min) | Common Voice + ISSAI, 100,000 clips | 2 | 56.08 |
-| v9 (from v8, `--lr 1.5e-4`, 62 min) | Common Voice + ISSAI, 60,000 clips | 5 | 55.27 |
-| v11 (from v10, `--lr 1.5e-4`, 166 min, 2026-10-25) | Common Voice + ISSAI, 100,000 clips | 18 | **51.66** |
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/asr-combined-val-dark.svg">
-  <img alt="Validation loss of the CTC baseline over the eight epochs of runs v6, v8 and v9" src="docs/asr-combined-val-light.svg">
-</picture>
-
-The loss axis of this chart does not start at zero; the whole range shown
-is 3.5 loss units. A v10 run (from v9) was stopped by hand after one epoch
-at 55.21; only its training checkpoint was kept.
-
-**v11 (2026-10-25)** continued from that v10 checkpoint overnight on all of
-the combined training manifest (100,000 clips, about 8.6 minutes per epoch
-on the CPU, running alone at below-normal priority on 12 of 16 threads) and
-was validated on the same 3,000 dev clips as v6, v8 and v9. Validation loss
-fell from 55.21 to **51.66** in 18 epochs, more than in all of v6 to v9
-together, and the best epoch was the last one, so it was still improving
-when the time budget ran out.
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/asr-v11-loss-curve-dark.svg">
-  <img alt="Training and validation loss over the 18 epochs of run v11" src="docs/asr-v11-loss-curve-light.svg">
-</picture>
-
-v11 also ran on the refactored front end (`scripts/asr_shared.py`,
-`scripts/text_norm.py`): one feature pipeline for training, filtering and
-evaluation, with padded frames set to -80 dB (silence) instead of 0, which
-the backward GRU would otherwise read as the loudest frame of the clip.
-
-v6, v8 and v9 share the same validation set (3,000 clips of the combined
-dev manifest), so 57.52 -> 56.08 -> 55.27 is a like-for-like improvement;
-the other runs used different subsets. Validation loss was still falling
-when v9 ran out of time. Training loss (82) stays well above validation
-loss, so the network (about 64,000 parameters) is underfitting: capacity,
-not data or regularization, is the limit. Clips whose transcript needs more
-CTC steps than the audio provides (some ISSAI clips) are skipped when
-loading, because they crash the CTC loss.
-
-Measured on 500 held-out clips with `scripts/evaluate_asr.py`:
-
-| Model | Test set | CER | WER |
-|---|---|---:|---:|
-| Stage 2 (2026-09-20) | Common Voice scripted | 59.4% | 101.2% |
-| v9 (2026-10-10) | Common Voice scripted (`common_voice_quality_v1/test.jsonl`) | **48.6%** | 100.6% |
-| v9 (2026-10-10) | ISSAI test | 49.2% | 99.6% |
-
-Re-measured on 2026-10-25 with the refactored `evaluate_asr.py` (same 500
-clips per set, silence padding), so v9 and v11 are compared like for like:
+Measured on 500 held-out clips per test set with `scripts/evaluate_asr.py`
+(greedy decoding, silence padding):
 
 | Model | Test set | CER | WER |
 |---|---|---:|---:|
@@ -237,22 +173,63 @@ clips per set, silence padding), so v9 and v11 are compared like for like:
 | v9 | ISSAI test | 50.1% | 99.1% |
 | **v11** | ISSAI test | **46.3%** | 101.5% |
 
-Character error rate fell by about fourteen points since Stage 2 (3.5 of
-them in v11), but nearly half the characters are still wrong and almost no
-whole word is right (WER near 100%; above 100% means the model also inserts
-words). Example from the Common Voice test set: "ikincisiyse kredi
-toplamının yarısını karşılıyor" comes out as "irincisiyise kredi tokla
-mununyalısıya karşınıyor". This path remains a research baseline, not a
-deployable model (Stage 2 details: [ASR_TRAINING_REPORT.md](ASR_TRAINING_REPORT.md)).
+Nearly half the characters are still wrong and almost no whole word is right
+(WER near 100%; above 100% means the model also inserts words). Example from
+the Common Voice test set: "ikincisiyse kredi toplamının yarısını karşılıyor"
+comes out as "irincisiyise kredi tokla mununyalısıya karşınıyor". This path
+remains a research baseline, not a deployable model.
 
-**2026-11-07: width option, wider run stopped.** v11 has only 63,955
-parameters and still underfits, so pruning it would not help. The script now
-takes `ASR_WIDTH` (default 1, unchanged model) to scale the Conv1D, GRU and
-Dense widths, so a wider model could serve as a teacher for the small one. A
-double-width run (`ASR_WIDTH=2`) reached validation loss 72.5 after its first
-epoch, which took 143 minutes on the CPU next to two other trainings. It was
-stopped after about 3 hours; nothing from it is published. This needs a GPU,
-not more CPU nights.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/asr-v11-loss-curve-dark.svg">
+  <img alt="Training and validation loss over the 18 epochs of run v11" src="docs/asr-v11-loss-curve-light.svg">
+</picture>
+
+v11's validation loss fell from 55.21 to 51.66 in 18 epochs and its best
+epoch was the last one, so it was still improving when the time ran out.
+Training loss stays well above validation loss: the network is
+**underfitting**. Its size, not the data, is the limit.
+
+### Version history
+
+Each run continued from the previous run's weights. Runs before v6 used
+different validation subsets, so their losses are not comparable with the
+later ones; v6, v8, v9 and v11 share the same 3,000 dev clips.
+
+| Run | Date | Training data | Epochs | Best validation loss | CER, Common Voice |
+|---|---|---|---:|---:|---:|
+| Stage 2 | 2026-09-20 | 9,000 clips | 22 | 76.40 | 59.4% (older evaluator) |
+| v3, v4 | 2026-09-20, 10-08 | up to 15,000 clips | 10, 3 | 64.46, 61.11 | n/m |
+| v5 | 2026-10-09 | Common Voice, 50,000 clips | n/r | 58.58 | n/m |
+| v6 | 2026-10-09 | Common Voice + ISSAI, 80,000 clips | 1 | 57.52 | n/m |
+| v7 | 2026-10-10 | 41,338 clips | 5 | 60.36 | n/m |
+| v8 | 2026-10-10 | Common Voice + ISSAI, 100,000 clips | 2 | 56.08 | n/m |
+| v9 | 2026-10-10 | Common Voice + ISSAI, 60,000 clips | 5 | 55.27 | 49.0% |
+| v10 | 2026-10 | stopped by hand after 1 epoch | 1 | 55.21 | n/m |
+| **v11** | 2026-10-25 | Common Voice + ISSAI, 100,000 clips | 18 | **51.66** | **45.6%** |
+| 2x width | 2026-11-07 | `ASR_WIDTH=2`, as a future teacher | 1 | 72.5 | stopped |
+
+n/r: not recorded. n/m: not measured. v11 also moved to a shared front end
+(`scripts/asr_shared.py`, `scripts/text_norm.py`) that pads with -80 dB
+(silence) instead of 0. Clips whose transcript needs more CTC steps than the
+audio provides (some ISSAI clips) are skipped, because they crash the CTC
+loss.
+
+**2026-11-07:** v11 underfits, so pruning it would make it worse. The script
+now takes `ASR_WIDTH` (default 1, the unchanged v11 model) to build a wider
+model as a teacher. A double-width run needed 143 minutes for one epoch on
+the CPU next to two other trainings and was stopped; nothing from it is
+published.
+
+### Roadmap
+
+Rule: **the device model does not grow.** A wider model may only serve as a
+teacher for a small one.
+
+| Step | Why | Gate | Status |
+|---|---|---|---|
+| Continue v11 on the GPU (WSL2, set up on 2026-11-07) | v11 was still improving; CPU epochs were too slow | CER below 40% on both test sets | next |
+| Train a wider teacher, distill into a 64k-parameter student | The small model underfits on its own | Student beats v11 at the same size | planned |
+| Record the command dataset and train the command classifier | That model, not this baseline, is the deployment target | The acceptance threshold below | open |
 
 ### Wispr Flow History (personal data, opt-in, local-only)
 
