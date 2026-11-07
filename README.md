@@ -222,6 +222,11 @@ published.
 
 ### Roadmap
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/roadmap-dark.svg">
+  <img alt="Roadmap for InviolusOCR, VoxHOD and the ASR baseline: next steps, this week and later, each with its gate" src="docs/roadmap-light.svg">
+</picture>
+
 Rule: **the device model does not grow.** A wider model may only serve as a
 teacher for a small one.
 
