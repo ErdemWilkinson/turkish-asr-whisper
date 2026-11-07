@@ -245,6 +245,15 @@ toplamının yarısını karşılıyor" comes out as "irincisiyise kredi tokla
 mununyalısıya karşınıyor". This path remains a research baseline, not a
 deployable model (Stage 2 details: [ASR_TRAINING_REPORT.md](ASR_TRAINING_REPORT.md)).
 
+**2026-11-07: width option, wider run stopped.** v11 has only 63,955
+parameters and still underfits, so pruning it would not help. The script now
+takes `ASR_WIDTH` (default 1, unchanged model) to scale the Conv1D, GRU and
+Dense widths, so a wider model could serve as a teacher for the small one. A
+double-width run (`ASR_WIDTH=2`) reached validation loss 72.5 after its first
+epoch, which took 143 minutes on the CPU next to two other trainings. It was
+stopped after about 3 hours; nothing from it is published. This needs a GPU,
+not more CPU nights.
+
 ### Wispr Flow History (personal data, opt-in, local-only)
 
 `export_wispr_pairs.py` can pull paired WAV/transcript rows out of a local

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import time
 from pathlib import Path
@@ -118,9 +119,10 @@ def build_models(learning_rate: float = 1e-3) -> tuple[tf.keras.Model, tf.keras.
     labels = tf.keras.Input(shape=(None,), dtype="int32", name="labels")
     input_len = tf.keras.Input(shape=(1,), dtype="int32", name="input_len")
     label_len = tf.keras.Input(shape=(1,), dtype="int32", name="label_len")
-    x = tf.keras.layers.Conv1D(48, 5, strides=2, padding="same", activation="relu")(features)
-    x = tf.keras.layers.Bidirectional(tf.keras.layers.GRU(64, return_sequences=True))(x)
-    x = tf.keras.layers.Dense(64, activation="relu")(x)
+    width = float(os.environ.get("ASR_WIDTH", "1"))  # layer-width multiplier (1 = the v11 model)
+    x = tf.keras.layers.Conv1D(int(48 * width), 5, strides=2, padding="same", activation="relu")(features)
+    x = tf.keras.layers.Bidirectional(tf.keras.layers.GRU(int(64 * width), return_sequences=True))(x)
+    x = tf.keras.layers.Dense(int(64 * width), activation="relu")(x)
     logits = tf.keras.layers.Dense(len(ALPHABET) + 1, activation="softmax", name="characters")(x)
     training = tf.keras.Model([features, labels, input_len, label_len], CtcLoss()([labels, logits, input_len, label_len]))
     inference = tf.keras.Model(features, logits)
