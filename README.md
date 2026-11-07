@@ -19,8 +19,10 @@ firmware) with its own, much larger and partly personal dataset.
 **Status: the command-classifier pipeline and its data contract are
 defined and scripted; recording the actual command dataset and clearing
 the accuracy gate (see below) has not happened yet.** The Common Voice
-baseline path has produced trained artifacts locally (not pushed — see
-`.gitignore`) but is a research comparison, not a shipped model.
+CTC baseline (v11, 63,955 parameters, CER 45.6%) is published on
+[Hugging Face](https://huggingface.co/inviolus/erdem-asr-tr-baseline) as a
+research baseline; it is not a usable transcriber and not the deployment
+target. See [Where the baseline stands](#where-the-baseline-stands).
 
 ## Two training paths
 
@@ -223,8 +225,8 @@ published.
 ### Roadmap
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/roadmap-dark.svg">
-  <img alt="Roadmap for InviolusOCR, VoxHOD and the ASR baseline: next steps, this week and later, each with its gate" src="docs/roadmap-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/roadmap-asr-dark.svg">
+  <img alt="ASR roadmap: next steps, this week and later, each with its gate" src="docs/roadmap-asr-light.svg">
 </picture>
 
 Rule: **the device model does not grow.** A wider model may only serve as a

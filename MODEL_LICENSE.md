@@ -16,10 +16,11 @@ A trained model carries the terms of the data it was trained on:
 Any model trained with the Turkish Speech Command Dataset is released under
 [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 
-As of 2026-10-10 no model in this project has been trained with that
-dataset. The CTC baseline uses Common Voice and, from run v6 onward, a
-subset of the ISSAI Turkish Speech Corpus, so its weights must keep the ISSAI
-copyright and license notice.
+No model in this project has been trained with that dataset so far. The
+published CTC baseline (v11,
+[inviolus/erdem-asr-tr-baseline](https://huggingface.co/inviolus/erdem-asr-tr-baseline))
+uses Common Voice and a subset of the ISSAI Turkish Speech Corpus. Its
+weights are MIT licensed and keep the ISSAI copyright and license notice.
 
 ## Attribution
 
